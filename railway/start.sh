@@ -5,13 +5,21 @@
 set -eu
 cd /app
 export PATH="$PWD/node_modules/.bin:$PATH"
+echo "[railway] step: liekan-schema-check.mjs"
 node scripts/liekan-schema-check.mjs --migrations-only --allow-pending
+echo "[railway] step: check-db.js"
 node scripts/check-db.js
+echo "[railway] step: liekan-schema-check.mjs"
 node scripts/liekan-schema-check.mjs
+echo "[railway] step: liekan-migrate.mjs"
 node scripts/liekan-migrate.mjs
+echo "[railway] step: liekan-seed-demo.mjs"
 node scripts/liekan-seed-demo.mjs --automatic || echo "[railway] demo seed skipped"
+echo "[railway] step: liekan-queue-bootstrap.mjs"
 node scripts/liekan-queue-bootstrap.mjs
+echo "[railway] step: update-tracker.js"
 node scripts/update-tracker.js
+echo "[railway] step: admin-password.mjs"
 node /app/railway/admin-password.mjs
 
 PORT="${PORT:-8080}"
