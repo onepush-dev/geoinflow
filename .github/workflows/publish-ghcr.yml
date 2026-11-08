@@ -1,0 +1,64 @@
+name: Publish GHCR
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/publish-ghcr.yml', 'Dockerfile', 'railway/**']
+permissions:
+  contents: read
+  packages: write
+env:
+  UPSTREAM_REPO: yaojingang/GEOInflow
+  UPSTREAM_SHA: 13c32ecc6eb76b9e6d68a0a92d973ea859e8700b
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: packaging
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.UPSTREAM_REPO }}
+          ref: ${{ env.UPSTREAM_SHA }}
+          path: upstream
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check whether the upstream base image already exists
+        id: base
+        run: |
+          if docker manifest inspect ghcr.io/onepush-dev/geoinflow:base-13c32ec >/dev/null 2>&1; then echo "exists=true" >> "$GITHUB_OUTPUT"; else echo "exists=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Build upstream image (unmodified Dockerfile.liekan)
+        if: steps.base.outputs.exists != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: upstream
+          file: upstream/Dockerfile.liekan
+          push: true
+          provenance: false
+          build-args: LIEKAN_REVISION=13c32ec
+          labels: |
+            org.opencontainers.image.source=https://github.com/onepush-dev/geoinflow
+            org.opencontainers.image.licenses=MIT
+          tags: ghcr.io/onepush-dev/geoinflow:base-13c32ec
+          platforms: linux/amd64
+      - name: Build Railway wrapper
+        uses: docker/build-push-action@v6
+        with:
+          context: packaging
+          push: true
+          provenance: false
+          build-args: BASE=ghcr.io/onepush-dev/geoinflow:base-13c32ec
+          labels: |
+            org.opencontainers.image.source=https://github.com/onepush-dev/geoinflow
+            org.opencontainers.image.description=GEOInflow (yaojingang/GEOInflow @ 13c32ec) app + workers for Railway
+            org.opencontainers.image.licenses=MIT
+          tags: |
+            ghcr.io/onepush-dev/geoinflow:latest
+            ghcr.io/onepush-dev/geoinflow:1.2.0-13c32ec-r1
+          platforms: linux/amd64
