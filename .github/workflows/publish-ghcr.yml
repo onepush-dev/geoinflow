@@ -60,5 +60,5 @@ jobs:
             org.opencontainers.image.licenses=MIT
           tags: |
             ghcr.io/onepush-dev/geoinflow:latest
-            ghcr.io/onepush-dev/geoinflow:1.2.0-13c32ec-r2
+            ghcr.io/onepush-dev/geoinflow:1.2.0-13c32ec-r3
           platforms: linux/amd64
